@@ -1,0 +1,66 @@
+body {
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    background-color: rgb(241, 248, 248);
+    font-size: 25px;
+    color: rgb(16, 68, 16);
+}
+
+h1 {
+    background-color: rgb(157, 218, 189);
+    text-align: center;
+    font-size: 45px;
+    font-weight: 600;
+    color: darks;
+    border: 5px double rgb(21, 83, 21);
+    padding: 10px;
+}
+
+h3 {
+    text-align: center;
+    background-color: cadetblue;
+    padding: 8px;    
+    border-bottom: 3px solid black;
+    margin-left: 0.75em;
+    margin-right: 0.75em;
+    letter-spacing: 0.8px;
+    font-size: 30px;
+    color: rgb(32, 53, 53);
+}
+
+p {
+    text-align: center;
+}
+
+img {
+    height: 600px;
+    width: auto;
+    display: block;
+    border: 2px solid black;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.list {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background-color: rgb(178, 210, 235);
+    border: 5px solid black;
+    margin: 10px;
+}
+li {
+    margin: 5px;
+}
+
+.recipes {
+    font-size: 25px;
+    list-style-type: none;
+    line-height: 150%;
+    list-style-position: inside;
+    text-align: center;
+}
+
+.homepage-link {
+  text-align: center;
+  margin-top: 15px;
+  margin-bottom: 25px;
+}
