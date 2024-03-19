@@ -27,13 +27,15 @@ After installing the Docker Engine, Follow these [instructions](https://docs.doc
 ### How to build an image from the Dockerfile
 
 [Docker Docs - build image](https://docs.docker.com/reference/cli/docker/image/build/)  
+[Docker Hub - httpd](https://hub.docker.com/_/httpd)
 
-The docker file:
+The docker file is simply:
 ```docker
 FROM httpd:2.4
 
 COPY ./website/ /usr/local/apache2/htdocs/
 ```
+- The httpd documentation on Docker Hub states that all html content must be copied into `/usr/local/apache2/htdocs/`
 Run the following command to build the image: 
 ```bash
 docker build -t project4-apache-server .
@@ -60,6 +62,7 @@ You can stop the container with:
 ```bash
 docker stop webserver1
 ```
+
 ### How to view the project running in the container
 
 To view the website running in the container open a browser and enter `http://localhost:8080/` into the search bar  
