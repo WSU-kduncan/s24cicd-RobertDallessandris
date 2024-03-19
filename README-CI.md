@@ -24,7 +24,20 @@ After installing the Docker Engine, Follow these [instructions](https://docs.doc
     E: Unable to correct problems, you have held broken packages.
     ```
     It means you have not installed the Docker Engine yet  
-### How to build an image from the Dockerfile  
+### How to build an image from the Dockerfile
+
+[Docker Docs - image build](https://docs.docker.com/reference/cli/docker/image/build/)  
+
+The docker file:
+```docker
+FROM httpd:2.4
+
+COPY ./website/ /usr/local/apache2/htdocs/
+```
+Run the following command to build the image: 
+```shell
+docker build -t project4-apache-server .
+```
   
 ### How to run the container  
   
