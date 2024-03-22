@@ -5,7 +5,7 @@ Spring 2024
 
 ## CI Project Overview 
   
-What are you doing, why, and what tools?  
+The Goal of this project is to run a webserver within a Docker container. The intructions below walk through installing the Docker engine, creating a dockerfile and docker image, then using that image to create a container that runs the httpd webserver. The [Apache HTTP Server](https://hub.docker.com/_/httpd) makes it very straightforward to set up a simple html server. 
 
 ## Run Project Locally  
   
