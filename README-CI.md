@@ -97,7 +97,18 @@ You can stop the container with:
 docker stop webserver1
 ```
 
+To restart a stopped container:
+```bash
+docker start webserver1
+```
+
 ### How to view the project running in the container
+To view all containers:
+```bash
+docker ps -a
+```
+The status shows the uptime of the container  
+![Docker container running in the command line](./img/docker_ps.png)  
 
 To view the website running in the container open a browser and enter `http://localhost:8080/` into the search bar  
   
