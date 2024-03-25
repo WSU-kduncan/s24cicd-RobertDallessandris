@@ -7,7 +7,7 @@ Spring 2024
   
 The Goal of this project is to run a webserver within a Docker container. The intructions below walk through installing the Docker engine, creating a dockerfile and docker image, then using that image to create a container that runs the httpd webserver. The [Apache HTTP Server](https://hub.docker.com/_/httpd) makes it very straightforward to set up a simple html server. 
 
-## Run Project Locally  
+## 1. Dockerize It
   
 ### How to install docker + dependencies  
 
@@ -114,3 +114,24 @@ To view the website running in the container open a browser and enter `http://lo
   
 
 ![Browser showing the container serving web content on port 8080](./img/container_in_browser.png)
+
+
+## 2. GitHub Actions & DockerHub
+
+### Creating a public repo in DockerHub
+
+### Authenticate with DockerHub via CLI using Dockerhub credentials
+
+### Push container image to Dockerhub (without GitHub Actions)
+
+### Link to your DockerHub repository
+
+### Configuring GitHub Secrets
+
+### Behavior of GitHub workflow
+
+### Resources
+
+- [Docker Docs - CICD with GitHub Actions](https://docs.docker.com/ci-cd/github-actions/)
+- [GitHub Actions - build-push-action documentation](https://github.com/marketplace/actions/build-and-push-docker-images)
+- [GitHub - publishing images to DockerHub](https://docs.github.com/en/actions/guides/publishing-docker-images#publishing-images-to-docker-hub)
