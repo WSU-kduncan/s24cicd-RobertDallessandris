@@ -116,11 +116,47 @@ To view the website running in the container open a browser and enter `http://lo
 ![Browser showing the container serving web content on port 8080](./img/container_in_browser.png)
 
 
-## 2. GitHub Actions & DockerHub
+## 2. GitHub Actions & DockerHub  
 
 ### Creating a public repo in DockerHub
 
-### Authenticate with DockerHub via CLI using Dockerhub credentials
+[Docker Docs - create account](https://docs.docker.com/docker-id/)  
+[Docker Docs - create repository](https://docs.docker.com/docker-hub/repos/create/)  
+
+In [DockerHub](https://hub.docker.com/), click on `Create a Repository`  
+![DockerHub Homepage](./img/dockerhub_homepage.png)
+
+Next on the Create Repository page: 
+1. Give your repository a name
+2. Give it a short description
+3. Select public visibility
+4. Click create
+
+![DockerHub Create Repo](./img/dockerhub_create_repo.png)  
+  
+You now have now created a public repository!
+
+### Authenticate with DockerHub via CLI using Dockerhub credentials  
+[Docker Docs - docker login](https://docs.docker.com/reference/cli/docker/login/)  
+[Docker Docs - access tokens](https://docs.docker.com/security/for-developers/access-tokens/)  
+
+You can log into docker from the command line with:  
+
+```bash
+docker login --username foo --password bar
+```  
+
+Alternatively, you can create a `personal access token` to use instead of password authentication:  
+1. Click on your avatar and select my account from the drop down menu  
+![](./img/docker_myaccount.png)  
+2. Select security from the sidebar then click `New Access Token`
+![](./img/docker_security.png)  
+3. Give the token a description, set the access permissions then click `Generate`
+![](./img/docker_access_token.png)  
+  
+
+> [!WARNING]  
+> Copy the generated access token immediately! It will not be displayed again.
 
 ### Push container image to Dockerhub (without GitHub Actions)
 
