@@ -147,10 +147,13 @@ docker login --username foo --password bar
 ```  
 
 Alternatively, you can create a `personal access token` to use instead of password authentication:  
-1. Click on your avatar and select my account from the drop down menu  
+
+1. Click on your avatar and select `My Account` from the drop down menu  
 ![](./img/docker_myaccount.png)  
-2. Select security from the sidebar then click `New Access Token`
+
+2. Select `Security` from the sidebar then click `New Access Token`
 ![](./img/docker_security.png)  
+
 3. Give the token a description, set the access permissions then click `Generate`
 ![](./img/docker_access_token.png)  
   
