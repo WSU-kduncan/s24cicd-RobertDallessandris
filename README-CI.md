@@ -161,7 +161,28 @@ Alternatively, you can create a `personal access token` to use instead of passwo
 > [!WARNING]  
 > Copy the generated access token immediately! It will not be displayed again.
 
-### Push container image to Dockerhub (without GitHub Actions)
+### Push container image to Dockerhub (without GitHub Actions)  
+[Docker Docs - Sharing image](https://docs.docker.com/get-started/04_sharing_app/)
+
+To push your image to dockerhub first you need to login to your account:  
+  
+```bash
+docker login -u rdalless
+```  
+When asked for a password, enter the token you just generated.  
+  
+Next you need to tag the image with the repostitory you are uploading too:  
+  
+```bash
+docker tag project4-apache-server rdalless/ceg3120
+```  
+  
+Now you can push the image to DockerHub:  
+  
+```bash
+docker push rdalless/ceg3120:latest
+```  
+  
 
 ### Link to your DockerHub repository
 
