@@ -159,7 +159,9 @@ Alternatively, you can create a `personal access token` to use instead of passwo
   
 
 > [!WARNING]  
-> Copy the generated access token immediately! It will not be displayed again.
+> Copy the generated access token immediately! It will not be displayed again.  
+  
+I would recommend setting up a token as that can be easily revoked if there is an issue or any suspicious activity is detected.  
 
 ### Push container image to Dockerhub (without GitHub Actions)  
 [Docker Docs - Sharing image](https://docs.docker.com/get-started/04_sharing_app/)
@@ -185,10 +187,27 @@ docker push rdalless/ceg3120:latest
   
 
 ### Link to your DockerHub repository
+https://hub.docker.com/repository/docker/rdalless/ceg3120/general  
 
 ### Configuring GitHub Secrets
+[Github Docs - Secrets in github actions](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions)  
+
+#### How to set a secret
+
+1. Click `Settings` on your repositories main page
+
+2. Select, in the left sidebar, `Security` -> `Secrets and variables` -> `Actions`
+
+3. Click `New Repository Secret`
+
+4. Enter a name and the secret then click `Add secret`
+
+#### What secret(s) are set for this project
 
 ### Behavior of GitHub workflow
+
+    what does it do and when
+    variables to change (repository, etc.)
 
 ### Resources
 
