@@ -7,6 +7,9 @@ Spring 2024
   
 The Goal of this project is to run a webserver within a Docker container. The intructions below walk through installing the Docker engine, creating a dockerfile and docker image, then using that image to create a container that runs the httpd webserver. The [Apache HTTP Server](https://hub.docker.com/_/httpd) makes it very straightforward to set up a simple html server. 
 
+### Diagram of Continuous Integration
+![continuous integration](img/continuous_integration.drawio.png)
+
 ## 1. Dockerize It
   
 ### How to install docker + dependencies  
