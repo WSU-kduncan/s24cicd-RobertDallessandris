@@ -249,7 +249,7 @@ jobs:
           tags: user/app:latest
 ```  
 
-Some variables need to be updated from this template. first update the build-push-action to the latest version from the marketplace page. Next replace user/app:latest with your dokerhub repositories name. Finally, i will change DOKERHUB_TOKEN to DOCKERHUB_PASSWORD since that is what I named my token secret. The yaml file now look like this:  
+Some variables need to be updated from this template. first update the build-push-action to the latest version from the marketplace page. Next replace user/app:latest with your dokerhub repositories name. Finally, i will change DOKERHUB_TOKEN to DOCKER_PASSWORD and DOCKERHUB_USERNAME to DOCKER_USERNAME since that is what I named my secrets. The yaml file now look like this:  
 
 ```yaml
 name: ci
@@ -273,8 +273,8 @@ jobs:
         name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       -
         name: Build and push Docker images
         uses: docker/build-push-action@v5.3.0
