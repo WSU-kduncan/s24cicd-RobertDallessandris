@@ -204,10 +204,87 @@ https://hub.docker.com/repository/docker/rdalless/ceg3120/general
 
 #### What secret(s) are set for this project
 
-### Behavior of GitHub workflow
+A repository secret containing the Dockerhub token generated above and our Dockerhub username.  
 
-    what does it do and when
-    variables to change (repository, etc.)
+### Behavior of GitHub workflow
+[Docker Docs - Github Actions](https://docs.docker.com/build/ci/github-actions/)  
+[Github Docs - Using Workflows](https://docs.github.com/en/actions/using-workflows)  
+
+From the github marketplace we are using the [build and push docker images](https://github.com/marketplace/actions/build-and-push-docker-images) workflow. Create a `.github/workflows/publish-docker-image.yml` inside your repository.  
+  
+From the action documentation copy the following into the yaml file:
+
+```yaml
+name: ci
+
+on:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: user/app:latest
+```  
+
+Some variables need to be updated from this template. first update the build-push-action to the latest version from the marketplace page. Next replace user/app:latest with your dokerhub repositories name. Finally, i will change DOKERHUB_TOKEN to DOCKERHUB_PASSWORD since that is what I named my token secret. The yaml file now look like this:  
+
+```yaml
+name: ci
+
+on:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      -
+        name: Build and push Docker images
+        uses: docker/build-push-action@v5.3.0
+        with:
+          push: true
+          tags: rdalless/ceg3120:latest
+```
+
+This workflow triggers on a push to the main branch of this github repository. It builds the image on a github runner then pushes it to the specified DockerHub repository if successful. 
+
+## 3. Diagram
+
+**TODO** Include a diagram (or diagrams) of the continuous integration process. A good diagram will label tools used and how things connect. This diagram would probably look best near your project description.
 
 ### Resources
 
