@@ -285,9 +285,6 @@ jobs:
 
 This workflow triggers on a push to the main branch of this github repository. It builds the image on a github runner then pushes it to the specified DockerHub repository if successful. 
 
-## 3. Diagram
-
-**TODO** Include a diagram (or diagrams) of the continuous integration process. A good diagram will label tools used and how things connect. This diagram would probably look best near your project description.
 
 ### Resources
 
