@@ -4,12 +4,11 @@ CEG 3120
 Spring 2024  
 
 ## CD Project Overview  
-**Project Due Friday April 19th**  
+**Project Due Friday April 19th**    
 
-[My DockerHub Repository Link](https://hub.docker.com/repository/docker/rdalless/ceg3120/general)  
+This project demonstrates the continuous deployment of a Docker image. The image is an apache2 http server image that will be automatically pushed to DockerHub with correct semantic versioning when a change is pushed to GitHub. This is accomplished using GitHub actions as defined in the .github/workflows directory. 
 
 **TODO** 
-- what are you doing, why, what tools.
 - Include a diagram of the continuous deployment process. A good diagram will label tools used and how things connect. 
 
 
@@ -38,9 +37,6 @@ Tags do not get automatically pushed up to GitHub. To push a tag:
 ```bash
 git push origin v1.0
 ```  
-
-
-
 
 ### Amend GitHub Action workflow to push Docker images with tags
 
@@ -86,7 +82,9 @@ Next, modify the build and push action to utilize these tags:
 ```  
 
 ### Behavior of GitHub workflow
+[My DockerHub Repository Link](https://hub.docker.com/repository/docker/rdalless/ceg3120/general)
 
+This workflow will when a tag is pushed to GitHub. First, the docker/meta-action grabs the git tag metadata. Next, the docker/login-action logs into my dockerhub account using the GitHub secrets variables. Finally, the docker/build-push-action builds the image and pushes it to DockerHub with the version tag (e.g. v1.1) and latest.
 
 ## 2. Deployment  
 **Milestone Due Monday April 15th**  
