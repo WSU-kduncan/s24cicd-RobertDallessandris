@@ -30,13 +30,11 @@ To change the GitHub Action workflow to trigger when a tag is pushed ammend the 
 ```yaml
 on:
   push:
-    branches:
-      - 'main'
     tags:
       - 'v*'
 ```  
   
-This will cause the workflow to trigger on tagged pushes to the main branch only.  
+This will cause the workflow to trigger only when a tag is pushed.  
   
 To Generate tags for the DockerHub image we will use the `docker/metadata-action` GitHub Action. Add the following to the steps section of the workflow yaml:  
   
@@ -49,9 +47,9 @@ To Generate tags for the DockerHub image we will use the `docker/metadata-action
         images: |
             rdalless/ceg3120
         tags: |
-        type=ref,event=branch
-        type=semver,pattern={{major}}.{{minor}}
-        type=semver,pattern={{major}}
+        type=ref,event=tag
+        type=semver,pattern=v{{major}}.{{minor}}
+        type=semver,pattern=v{{major}}
 ```  
   
 This will collect the github tag metadata that we will use when pushing the image to DockerHub.  
