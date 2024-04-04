@@ -17,10 +17,58 @@ Spring 2024
 [Semantic Versioning](https://semver.org/)  
 [Github Actions - Docker metadata](https://github.com/docker/metadata-action)  
 [Docker Docs - Manage tags/labels with GitHub actions](https://docs.docker.com/build/ci/github-actions/manage-tags-labels/)  
+[Git Tagging](https://git-scm.com/book/en/v2/Git-Basics-Tagging)  
 
 - Link to Docker Hub repository  
 
 #### How to generate a tag in git / GitHub
+
+**TODO** tag gen in git  
+  
+To change the GitHub Action workflow to trigger when a tag is pushed ammend the workflow trigger in the yaml file to:  
+
+```yaml
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'v*'
+```  
+  
+This will cause the workflow to trigger on tagged pushes to the main branch only.  
+  
+To Generate tags for the DockerHub image we will use the `docker/metadata-action` GitHub Action. Add the following to the steps section of the workflow yaml:  
+  
+```yaml
+- 
+    name: Docker meta
+    id: meta
+    uses: docker/metadata-action@v5
+    with:
+        images: |
+            rdalless/ceg3120
+        tags: |
+        type=ref,event=branch
+        type=semver,pattern={{major}}.{{minor}}
+        type=semver,pattern={{major}}
+```  
+  
+This will collect the github tag metadata that we will use when pushing the image to DockerHub.  
+  
+Next, modify the build and push action to utilize these tags:  
+  
+```yaml
+-
+    name: Build and push Docker images
+    uses: docker/build-push-action@v5.3.0
+    with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+```  
+
 - Amend your GitHub Action workflow to:
     - run when a tag is pushed
     - use the docker/metadata-action to generate a set of tags from your repository
