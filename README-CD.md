@@ -61,7 +61,6 @@ Next, modify the build and push action to utilize these tags:
     name: Build and push Docker images
     uses: docker/build-push-action@v5.3.0
     with:
-        context: .
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
