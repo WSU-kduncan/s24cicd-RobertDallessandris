@@ -6,6 +6,8 @@ Spring 2024
 ## CD Project Overview  
 **Project Due Friday April 19th**  
 
+[My DockerHub Repository Link](https://hub.docker.com/repository/docker/rdalless/ceg3120/general)  
+
 **TODO** 
 - what are you doing, why, what tools.
 - Include a diagram of the continuous deployment process. A good diagram will label tools used and how things connect. 
@@ -19,13 +21,30 @@ Spring 2024
 [Docker Docs - Manage tags/labels with GitHub actions](https://docs.docker.com/build/ci/github-actions/manage-tags-labels/)  
 [Git Tagging](https://git-scm.com/book/en/v2/Git-Basics-Tagging)  
 
-- Link to Docker Hub repository  
+### How to generate a tag in git / GitHub
 
-#### How to generate a tag in git / GitHub
-
-**TODO** tag gen in git  
+A lightweight tag is simply:  
+```bash
+git tag v1.0
+```  
   
-To change the GitHub Action workflow to trigger when a tag is pushed ammend the workflow trigger in the yaml file to:  
+To generate an annotated tag:  
+```bash
+git tag -a v1.1 -m "Release version 1.1"
+```  
+Annotated tags store additional information such as tagger name, email, date and a message.  
+
+Tags do not get automatically pushed up to GitHub. To push a tag:  
+```bash
+git push origin v1.0
+```  
+
+
+
+
+### Amend GitHub Action workflow to push Docker images with tags
+
+To change the GitHub Action workflow to trigger when a tag is pushed, amend the workflow trigger in the yaml file as follows:  
 
 ```yaml
 on:
@@ -66,11 +85,7 @@ Next, modify the build and push action to utilize these tags:
         labels: ${{ steps.meta.outputs.labels }}
 ```  
 
-- Amend your GitHub Action workflow to:
-    - run when a tag is pushed
-    - use the docker/metadata-action to generate a set of tags from your repository
-    - push images to DockerHub with an image tags based on your git tag version AND latest
-- Behavior of GitHub workflow
+### Behavior of GitHub workflow
 
 
 ## 2. Deployment  
@@ -91,13 +106,13 @@ For this piece, use an EC2 instance.
     - put a copy of the hook configuration in a folder named deployment in your repo
 - Configure either GitHub or DockerHub to send a message to the listener / hook  
 
-#### How to install Docker to your instance
+### How to install Docker to your instance
 
-#### Container restart script
+### Container restart script
 - Justification & description of what it does
 - Where it should be on the instance (if someone were to use your setup)  
 
-#### Setting up a webhook on the instance
+### Setting up a webhook on the instance
 - How to install adnanh's webhook to the instance
 - How to start the webhook
     - since our instance's reboot, we need to handle this
@@ -105,9 +120,9 @@ For this piece, use an EC2 instance.
     - Description of what it does
     - Where it should be on the instance (if someone were to use your setup)
 
-#### How to configure GitHub OR DockerHub to message the listener
+### How to configure GitHub OR DockerHub to message the listener
 
-#### Provide proof that the CI & CD workflow work
+### Provide proof that the CI & CD workflow work
 
 1. starting with a commit that is a change, taging the commit, pushing the tag
 2. Showing your GitHub workflow returning a message of success.
