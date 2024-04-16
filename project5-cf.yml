@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Dallessandris CF template: Builds a linux VM for CEG 3120 @ WSU, allow ssh from trusted networks and http/https from all networks.
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+Mappings:
+  AWSRegionAMI: # AMI for Ubuntu server in each supported region 
+    us-east-1:   # N. Virginia
+      HVM64: ami-0c7217cdde317cfec # Ubuntu 22.04
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 172.19.0.0/23
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: PROJECT5-CF-VPC
+  Subnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 172.19.0.0/24
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: PROJECT5-CF-SN
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: PROJECT5-CF-GW
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  RouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: PROJECT5-CF-RT
+  Route:
+    Type: 'AWS::EC2::Route'
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  SubnetRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref Subnet
+      RouteTableId: !Ref RouteTable
+  UbuntuIPAddress:
+    Type: 'AWS::EC2::EIP'
+    DependsOn: AttachGateway
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref PublicUbuntuInstance
+      Tags:
+        - Key: Name
+          Value: PROJECT5-CF-EIP
+  Project2SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Enable SSH access via port 22 to trusted networks, and open ports 80/443 for http/https.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 76.181.99.85/32  # Home CIDR
+          Description: 'Home CIDR ssh access'
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 130.108.0.0/16  # WSU CIDR
+          Description: 'WSU CIDR ssh access'
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 172.19.0.0/23  # VPC CIDR
+          Description: 'VPC CIDR ssh access'
+        - IpProtocol: tcp
+          FromPort: '80'  # HTTP
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+          Description: 'HTTP access to all IPs'
+        - IpProtocol: tcp
+          FromPort: '443'  # HTTPS
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+          Description: 'HTTPS access to all IPs'
+      Tags:
+        - Key: Name
+          Value: PROJECT5-CF-SG
+  PublicUbuntuInstance:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: AttachGateway
+    Properties:
+      ImageId: !FindInMap [AWSRegionAMI, !Ref "AWS::Region", HVM64]
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: PROJECT5-CF-INSTANCE
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref Project2SecurityGroup
+          AssociatePublicIpAddress: 'true'
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          SubnetId: !Ref Subnet
+          PrivateIpAddress: 172.19.0.4
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            apt-get update && \
+            apt-get install -y \
+              webhook \
+              ca-certificates \
+              curl && \
+            install -m 0755 -d /etc/apt/keyrings && \
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+            chmod a+r /etc/apt/keyrings/docker.asc && \
+            echo \
+              "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+              $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+              tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+            apt-get update && \
+            apt-get install -y \
+            docker-ce \
+            docker-ce-cli \
+            containerd.io \
+            docker-buildx-plugin \
+            docker-compose-plugin && \
+            usermod -aG docker ubuntu && \
+            docker pull rdalless/ceg3120:latest && \
+            docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest && \
+            hostnamectl set-hostname project5 && \
+            echo "This is $(whoami) from the CF template in working directory $(PWD)" > /home/ubuntu/hello.txt && \
+            cat << EOF > /home/ubuntu/deploy.sh
+            #! /bin/bash
+
+            # Kill and delete old container process
+            docker stop webserv
+            docker system prune --force
+            # pull fresh image
+            docker pull rdalless/ceg3120:latest
+            # run new container
+            docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest
+            EOF && \
+            setfacl --modify u:ubuntu:rwx /home/ubuntu/deploy.sh && \
+            reboot
