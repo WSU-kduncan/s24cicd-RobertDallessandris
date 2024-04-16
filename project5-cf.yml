@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  Dallessandris CF template: Builds a linux VM for CEG 3120 @ WSU, allow ssh from trusted networks and http/https from all networks.
+  Dallessandris CF template: Builds a linux VM for CEG 3120 @ WSU Project 5. Serves webcontent through httpd container that updates by webhook listening on port 9000.
 Parameters:
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
@@ -104,6 +104,11 @@ Resources:
           ToPort: '443'
           CidrIp: 0.0.0.0/0
           Description: 'HTTPS access to all IPs'
+        - IpProtocol: tcp
+          FromPort: '9000'
+          ToPort: '9000'
+          CidrIp: 0.0.0.0/0
+          Description: 'Webhook listener service'
       Tags:
         - Key: Name
           Value: PROJECT5-CF-SG
@@ -131,11 +136,20 @@ Resources:
         Fn::Base64:
           !Sub |
             #!/bin/bash -xe
+
+            # Set up logging of user-data commands to /var/log/user-data.log and /dev/console
+            exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 && \
+
+            hostnamectl set-hostname project5 && \
+            echo "This is $(whoami) from the CF template" > /home/ubuntu/hello.txt && \
+            
             apt-get update && \
             apt-get install -y \
               webhook \
               ca-certificates \
               curl && \
+
+            # Install Docker
             install -m 0755 -d /etc/apt/keyrings && \
             curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
             chmod a+r /etc/apt/keyrings/docker.asc && \
@@ -150,14 +164,16 @@ Resources:
             containerd.io \
             docker-buildx-plugin \
             docker-compose-plugin && \
+
             usermod -aG docker ubuntu && \
+
+            # Pull latest docker image and start new container
             docker pull rdalless/ceg3120:latest && \
             docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest && \
-            hostnamectl set-hostname project5 && \
-            echo "This is $(whoami) from the CF template in working directory $(PWD)" > /home/ubuntu/hello.txt && \
-            cat << EOF > /home/ubuntu/deploy.sh
-            #! /bin/bash
 
+            # Place deploy script in ubuntu home directory
+            cat <<'EOF' > /home/ubuntu/deploy.sh
+            #! /bin/bash
             # Kill and delete old container process
             docker stop webserv
             docker system prune --force
@@ -165,6 +181,21 @@ Resources:
             docker pull rdalless/ceg3120:latest
             # run new container
             docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest
-            EOF && \
-            setfacl --modify u:ubuntu:rwx /home/ubuntu/deploy.sh && \
+            EOF
+            
+            # Add execute permissions to script and change owner to ubuntu
+            chmod +x /home/ubuntu/deploy.sh && \
+            chown ubuntu /home/ubuntu/deploy.sh && \
+
+            # Place webhook hooks file in expected default location
+            cat <<'EOF' > /etc/webhook.conf
+            [
+              {
+                "id": "deploy",
+                "execute-command": "/home/ubuntu/deploy.sh",
+                "command-working-directory": "/home/ubuntu"
+              }
+            ]
+            EOF
+
             reboot
