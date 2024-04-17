@@ -1,0 +1,578 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+   Creates 3 instances and 1 VPC. The instances run an apache2 httpd container serving webcontent that automatically updates through webhooks.
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+Mappings:
+  AWSRegionAMI: # AMI for Ubuntu server in each supported region 
+    us-east-1:   # N. Virginia
+    # AMI ID for Ubuntu 22.04 (ubuntu + apt)
+      HVM64: ami-0c7217cdde317cfec
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 172.18.0.0/23
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: LB-VPC
+  PublicSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 172.18.0.0/24
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: LB-public-subnet
+  PrivateSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 172.18.1.0/24
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: LB-private-subnet
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: LB-ig
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: LB-public-rt
+  PublicRouteToIG:
+    Type: 'AWS::EC2::Route'
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnetRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+  NATIPAddress:
+    Type: 'AWS::EC2::EIP'
+    DependsOn: AttachGateway
+    Properties:
+      Domain: vpc
+  NATGateway:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt 'NATIPAddress.AllocationId' #!Ref NATIPAddress
+      ConnectivityType: public
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: LB-natgw
+  PrivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: LB-private-rt
+  PrivateRouteToNAT:
+    Type: 'AWS::EC2::Route'
+    DependsOn: NATGateway
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway
+  PrivateSubnetRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable
+  ProxyIPAddress:
+    Type: 'AWS::EC2::EIP'
+    DependsOn: AttachGateway
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref ProxyInstance
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Enable SSH access from trusted sources.  Port 80 or 443 access from appropraite sources
+      SecurityGroupIngress:
+          # Rules for port 22 access
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 172.18.0.0/23
+          Description: 'VPC CIDR ssh access'
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 130.108.0.0/16
+          Description: 'WSU CIDR ssh access'
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 76.181.99.85/32
+          Description: 'Home CIDR ssh access'
+          # Rules for port 80 access
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 172.18.0.0/23
+          Description: 'VPC HTTP access'
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+          Description: 'HTTP access for all IPs'
+          # Rules for port 443 access
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 172.18.0.0/23
+          Description: 'VPC HTTPS access'
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+          Description: 'HTTPS access for all IPs'
+        - IpProtocol: tcp
+          FromPort: '9000'
+          ToPort: '9000'
+          CidrIp: 0.0.0.0/0
+          Description: 'Webhook listener service'
+        - IpProtocol: tcp
+          FromPort: '8404'
+          ToPort: '8404'
+          CidrIp: 130.108.0.0/16
+          Description: 'HAproxy stats page'
+      Tags: 
+        - Key: Name
+          Value: LB-sg
+  ProxyInstance:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: PublicRouteToIG
+    Properties:
+      ImageId: !FindInMap [AWSRegionAMI, !Ref "AWS::Region", HVM64]
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: proxy
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref SecurityGroup
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          SubnetId: !Ref PublicSubnet
+          PrivateIpAddress: 172.18.0.10
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+
+            # Set up logging of user-data commands to /var/log/user-data.log and /dev/console
+            exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 && \
+
+            hostnamectl set-hostname proxy && \
+            echo "This is $(whoami) from the CF template" > /home/ubuntu/hello.txt && \
+            
+            apt-get update && \
+            apt-get install -y \
+              webhook \
+              haproxy \
+              curl && \
+
+            # Place deploy script in ubuntu home directory
+            cat <<'EOF' > /home/ubuntu/deploy.sh
+            #! /bin/bash
+            curl 172.18.1.10:9000/hooks/deploy
+            curl 172.18.1.20:9000/hooks/deploy
+            curl 172.18.1.30:9000/hooks/deploy
+            EOF
+            
+            # Add execute permissions to script and change owner to ubuntu
+            chmod +x /home/ubuntu/deploy.sh && \
+            chown ubuntu /home/ubuntu/deploy.sh && \
+
+            # Place webhook hooks file in expected default location
+            cat <<'EOF' > /etc/webhook.conf
+            [
+              {
+                "id": "deploy",
+                "execute-command": "/home/ubuntu/deploy.sh",
+                "command-working-directory": "/home/ubuntu"
+              }
+            ]
+            EOF
+
+            # Configure haproxy
+            cat <<'EOF' > /etc/haproxy/haproxy.cfg
+            global
+              maxconn 5000
+              log /dev/log    local0
+              log /dev/log    local1 notice
+              chroot /var/lib/haproxy
+              stats socket /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+              stats timeout 30s
+              user haproxy
+              group haproxy
+              daemon
+
+              # Default SSL material locations
+              ca-base /etc/ssl/certs
+              crt-base /etc/ssl/private
+
+              # See: https://ssl-config.mozilla.org/#server=haproxy&server-version=2.0.3&config=intermediate
+              ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384it will be over 1000 lines of difficult
+              ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+              ssl-default-bind-options ssl-min-ver TLSv1.2 no-tls-tickets
+
+            defaults
+              log     global
+              mode    http
+              option  httplog
+              option  dontlognull
+              timeout connect 5000
+              timeout client  50000
+              timeout server  50000
+              errorfile 400 /etc/haproxy/errors/400.http
+              errorfile 403 /etc/haproxy/errors/403.http
+              errorfile 408 /etc/haproxy/errors/408.http
+              errorfile 500 /etc/haproxy/errors/500.http
+              errorfile 502 /etc/haproxy/errors/502.http
+              errorfile 503 /etc/haproxy/errors/503.http
+              errorfile 504 /etc/haproxy/errors/504.http
+
+            frontend stats 
+              bind *:8404
+              mode http
+              log global
+              stats enable
+              stats uri /stats
+              stats refresh 10s
+              stats admin if LOCALHOST
+
+            frontend 34.206.153.0
+              bind 172.18.0.10:80
+              default_backend web_servers
+
+            backend web_servers
+              balance roundrobin
+              default-server check maxconn 500
+              server webserv1 172.18.1.10:80
+              server webserv2 172.18.1.20:80
+              server webserv3 172.18.1.30:80
+            EOF
+
+            # Configure .ssh config. vockey.pem should be sftp'd onto proxy manually unless you want to set up an AWS secret to load it into the instance
+            cat <<'EOF' > /home/ubuntu/.ssh/config
+            Host webserv1
+              HostName 172.18.1.10
+              User ubuntu
+              Port 22
+              IdentityFile /home/ubuntu/.ssh/vockey.pem
+
+            Host webserv2
+                HostName 172.18.1.20
+                User ubuntu
+                Port 22
+              IdentityFile /home/ubuntu/.ssh/vockey.pem
+
+            Host webserv3
+                HostName 172.18.1.30
+                User ubuntu
+                Port 22
+                IdentityFile /home/ubuntu/.ssh/vockey.pem
+            EOF
+
+            reboot
+  WebServ1Instance:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: NATGateway
+    Properties:
+      ImageId: !FindInMap [AWSRegionAMI, !Ref "AWS::Region", HVM64]
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: webserv1
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref SecurityGroup
+          AssociatePublicIpAddress: 'false'
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          SubnetId: !Ref PrivateSubnet
+          PrivateIpAddress: 172.18.1.10
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+
+            # Set up logging of user-data commands to /var/log/user-data.log and /dev/console
+            exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 && \
+
+            hostnamectl set-hostname webserv1 && \
+            echo "This is $(whoami) from the CF template" > /home/ubuntu/hello.txt && \
+            
+            apt-get update && \
+            apt-get install -y \
+              webhook \
+              ca-certificates \
+              curl && \
+
+            # Install Docker
+            install -m 0755 -d /etc/apt/keyrings && \
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+            chmod a+r /etc/apt/keyrings/docker.asc && \
+            echo \
+              "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+              $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+              tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+            apt-get update && \
+            apt-get install -y \
+            docker-ce \
+            docker-ce-cli \
+            containerd.io \
+            docker-buildx-plugin \
+            docker-compose-plugin && \
+
+            usermod -aG docker ubuntu && \
+
+            # Pull latest docker image and start new container
+            docker pull rdalless/ceg3120:latest && \
+            docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest && \
+
+            # Place deploy script in ubuntu home directory
+            cat <<'EOF' > /home/ubuntu/deploy.sh
+            #! /bin/bash
+            # Kill and delete old container process
+            docker stop webserv
+            docker system prune --force
+            # pull fresh image
+            docker pull rdalless/ceg3120:latest
+            # run new container
+            docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest
+            EOF
+            
+            # Add execute permissions to script and change owner to ubuntu
+            chmod +x /home/ubuntu/deploy.sh && \
+            chown ubuntu /home/ubuntu/deploy.sh && \
+
+            # Place webhook hooks file in expected default location
+            cat <<'EOF' > /etc/webhook.conf
+            [
+              {
+                "id": "deploy",
+                "execute-command": "/home/ubuntu/deploy.sh",
+                "command-working-directory": "/home/ubuntu"
+              }
+            ]
+            EOF
+
+            reboot
+  WebServ2Instance:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: NATGateway
+    Properties:
+      ImageId: !FindInMap [AWSRegionAMI, !Ref "AWS::Region", HVM64]
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: webserv2
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref SecurityGroup
+          AssociatePublicIpAddress: 'false'
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          SubnetId: !Ref PrivateSubnet
+          PrivateIpAddress: 172.18.1.20
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+
+            # Set up logging of user-data commands to /var/log/user-data.log and /dev/console
+            exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 && \
+
+            hostnamectl set-hostname webserv2 && \
+            echo "This is $(whoami) from the CF template" > /home/ubuntu/hello.txt && \
+            
+            apt-get update && \
+            apt-get install -y \
+              webhook \
+              ca-certificates \
+              curl && \
+
+            # Install Docker
+            install -m 0755 -d /etc/apt/keyrings && \
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+            chmod a+r /etc/apt/keyrings/docker.asc && \
+            echo \
+              "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+              $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+              tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+            apt-get update && \
+            apt-get install -y \
+            docker-ce \
+            docker-ce-cli \
+            containerd.io \
+            docker-buildx-plugin \
+            docker-compose-plugin && \
+
+            usermod -aG docker ubuntu && \
+
+            # Pull latest docker image and start new container
+            docker pull rdalless/ceg3120:latest && \
+            docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest && \
+
+            # Place deploy script in ubuntu home directory
+            cat <<'EOF' > /home/ubuntu/deploy.sh
+            #! /bin/bash
+            # Kill and delete old container process
+            docker stop webserv
+            docker system prune --force
+            # pull fresh image
+            docker pull rdalless/ceg3120:latest
+            # run new container
+            docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest
+            EOF
+            
+            # Add execute permissions to script and change owner to ubuntu
+            chmod +x /home/ubuntu/deploy.sh && \
+            chown ubuntu /home/ubuntu/deploy.sh && \
+
+            # Place webhook hooks file in expected default location
+            cat <<'EOF' > /etc/webhook.conf
+            [
+              {
+                "id": "deploy",
+                "execute-command": "/home/ubuntu/deploy.sh",
+                "command-working-directory": "/home/ubuntu"
+              }
+            ]
+            EOF
+
+            reboot
+  WebServ3Instance:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: NATGateway
+    Properties:
+      ImageId: !FindInMap [AWSRegionAMI, !Ref "AWS::Region", HVM64]
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: webserv3
+      NetworkInterfaces:
+        - GroupSet:
+            - !Ref SecurityGroup
+          AssociatePublicIpAddress: 'false'
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          SubnetId: !Ref PrivateSubnet
+          PrivateIpAddress: 172.18.1.30
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+
+            # Set up logging of user-data commands to /var/log/user-data.log and /dev/console
+            exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1 && \
+
+            hostnamectl set-hostname webserv3 && \
+            echo "This is $(whoami) from the CF template" > /home/ubuntu/hello.txt && \
+            
+            apt-get update && \
+            apt-get install -y \
+              webhook \
+              ca-certificates \
+              curl && \
+
+            # Install Docker
+            install -m 0755 -d /etc/apt/keyrings && \
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+            chmod a+r /etc/apt/keyrings/docker.asc && \
+            echo \
+              "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+              $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+              tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+            apt-get update && \
+            apt-get install -y \
+            docker-ce \
+            docker-ce-cli \
+            containerd.io \
+            docker-buildx-plugin \
+            docker-compose-plugin && \
+
+            usermod -aG docker ubuntu && \
+
+            # Pull latest docker image and start new container
+            docker pull rdalless/ceg3120:latest && \
+            docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest && \
+
+            # Place deploy script in ubuntu home directory
+            cat <<'EOF' > /home/ubuntu/deploy.sh
+            #! /bin/bash
+            # Kill and delete old container process
+            docker stop webserv
+            docker system prune --force
+            # pull fresh image
+            docker pull rdalless/ceg3120:latest
+            # run new container
+            docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest
+            EOF
+            
+            # Add execute permissions to script and change owner to ubuntu
+            chmod +x /home/ubuntu/deploy.sh && \
+            chown ubuntu /home/ubuntu/deploy.sh && \
+
+            # Place webhook hooks file in expected default location
+            cat <<'EOF' > /etc/webhook.conf
+            [
+              {
+                "id": "deploy",
+                "execute-command": "/home/ubuntu/deploy.sh",
+                "command-working-directory": "/home/ubuntu"
+              }
+            ]
+            EOF
+
+            reboot

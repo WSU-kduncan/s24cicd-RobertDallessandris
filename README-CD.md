@@ -132,10 +132,14 @@ The script is located in `/home/user/ubuntu/deploy.sh`
 
 ### Setting up a webhook on the instance
 
+[Adnanh webhook](https://github.com/adnanh/webhook)
+
 On an ubuntu instance, webhook can simply be installed with `sudo apt install webhook`
 
+> [!CAUTION]  
+> Webhook listens on port 9000. Make sure security groups are configured properly
+
 - How to start the webhook
-    - since our instance's reboot, we need to handle this
 
 To configure the service to work on reboot, reference the service file at `/lib/systemd/system/webhook.service`:  
 
