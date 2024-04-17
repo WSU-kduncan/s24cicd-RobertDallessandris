@@ -136,8 +136,8 @@ On an ubuntu instance, webhook can simply be installed with `sudo apt install we
 
 - How to start the webhook
     - since our instance's reboot, we need to handle this
-    
-To configure the service to work on reboot reference the service file at `/lib/systemd/system/webhook.service`:  
+
+To configure the service to work on reboot, reference the service file at `/lib/systemd/system/webhook.service`:  
 
 ```bash
 [Unit]
@@ -153,7 +153,7 @@ WantedBy=multi-user.target
 ```
 The service is looking for a file `/etc/webhook.conf` on startup. This is the hooks definitions for the service. 
 
-Create the file with the following text:  
+Create the file `/etc/webhook.conf` with the following text:  
 ```json
 [
     {
@@ -162,22 +162,19 @@ Create the file with the following text:
     "command-working-directory": "/home/ubuntu"
     }
 ]
-```
+``` 
 
-- webhook task definition file
-    - Description of what it does
-    - Where it should be on the instance (if someone were to use your setup)
+webhook listens on `port 9000`. The following http request will trigger the webhook:  
+
+`http://54.156.193.218:9000/hooks/deploy`  
+
+deploy is the name of the id for the hook we have defined in webhook.conf that gets triggered when the http request is recieved. It executes our deploy script in /home/ubunut/deploy.sh
 
 ### How to configure DockerHub to message the listener
 
 ### Provide proof that the CI & CD workflow work
 
-1. starting with a commit that is a change, taging the commit, pushing the tag
-2. Showing your GitHub workflow returning a message of success.
-3. Showing DockerHub has freshly pushed images.
-4. Showing the instance that you are deploying to has the container updated.
-
-Proof can be provided by either demonstrating to me in person OR by creating a video of the process. If you go the video route and your file is too large for GitHub, submit it to the "Project 5 - Proof of Flow" Dropbox on Pilot
+Proof was demonstrated in person
 
 ### Additional Resources 
 [Stackoverflow - Cloudformation logging user-data](https://stackoverflow.com/questions/54906764/aws-cloudformation-userdata-issue)  
