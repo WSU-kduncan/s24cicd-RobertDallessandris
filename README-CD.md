@@ -95,11 +95,12 @@ I will walk through setting this up manually below.
 [GitHub Actions & webhooks](https://levelup.gitconnected.com/automated-deployment-using-docker-github-actions-and-webhooks-54018fc12e32)  
 [DockerHub & webhooks](https://blog.devgenius.io/build-your-first-ci-cd-pipeline-using-docker-github-actions-and-webhooks-while-creating-your-own-da783110e151)  
 
-For this piece, use an EC2 instance.
+On an EC2 instance:
 
-- Install docker on the instance
-- pull and run a container from your DockerHub image
-    - confirm you can access your service running in the container from a browser
+
+
+**pull and run a container from your DockerHub image**  
+
 - Create a script to pull a new image from DockerHub and restart the container
     - put a copy of the script in a folder named deployment in your repo
 - Set a listener / hook to receive messages using adnanh's webhook
@@ -109,19 +110,65 @@ For this piece, use an EC2 instance.
 
 ### How to install Docker to your instance
 
+Please refer to [README-CI](./README-CI.md#how-to-install-docker--dependencies) for step by step instructions to installing docker on a linux instance.  
+
 ### Container restart script
-- Justification & description of what it does
-- Where it should be on the instance (if someone were to use your setup)  
+
+```bash
+#! /bin/bash
+
+# Kill and delete old container process
+docker stop webserv
+docker system prune --force
+# pull fresh image
+docker pull rdalless/ceg3120:latest
+# run new container
+docker run -d -p 80:80 --name webserv --restart always rdalless/ceg3120:latest
+```
+
+The deploy script is called by webhook when DockerHub is pushed an new image. The script will stop and delete the currently running container, download the fresh image, then start a new container with the --restart flag ensuring it runs whenever the system is rebooted.  
+  
+The script is located in `/home/user/ubuntu/deploy.sh` 
 
 ### Setting up a webhook on the instance
-- How to install adnanh's webhook to the instance
+
+On an ubuntu instance, webhook can simply be installed with `sudo apt install webhook`
+
 - How to start the webhook
     - since our instance's reboot, we need to handle this
+    
+To configure the service to work on reboot reference the service file at `/lib/systemd/system/webhook.service`:  
+
+```bash
+[Unit]
+Description=Small server for creating HTTP endpoints (hooks)
+Documentation=https://github.com/adnanh/webhook/
+ConditionPathExists=/etc/webhook.conf
+
+[Service]
+ExecStart=/usr/bin/webhook -nopanic -hooks /etc/webhook.conf
+
+[Install]
+WantedBy=multi-user.target
+```
+The service is looking for a file `/etc/webhook.conf` on startup. This is the hooks definitions for the service. 
+
+Create the file with the following text:  
+```json
+[
+    {
+    "id": "deploy",
+    "execute-command": "/home/ubuntu/deploy.sh",
+    "command-working-directory": "/home/ubuntu"
+    }
+]
+```
+
 - webhook task definition file
     - Description of what it does
     - Where it should be on the instance (if someone were to use your setup)
 
-### How to configure GitHub OR DockerHub to message the listener
+### How to configure DockerHub to message the listener
 
 ### Provide proof that the CI & CD workflow work
 
