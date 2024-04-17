@@ -87,7 +87,10 @@ Next, modify the build and push action to utilize these tags:
 This workflow will when a tag is pushed to GitHub. First, the docker/meta-action grabs the git tag metadata. Next, the docker/login-action logs into my dockerhub account using the GitHub secrets variables. Finally, the docker/build-push-action builds the image and pushes it to DockerHub with the version tag (e.g. v1.1) and latest.
 
 ## 2. Deployment  
-**Milestone Due Monday April 15th**  
+
+This [Cload Formation Template](./project5-cf.yml) automates creating an instance with docker installed, the docker image downloaded from dockerhub, a new container started, and the webhooks properly configured to trigger a pre-loaded deploy script.  
+
+I will walk through setting this up manually below.  
 
 [GitHub Actions & webhooks](https://levelup.gitconnected.com/automated-deployment-using-docker-github-actions-and-webhooks-54018fc12e32)  
 [DockerHub & webhooks](https://blog.devgenius.io/build-your-first-ci-cd-pipeline-using-docker-github-actions-and-webhooks-while-creating-your-own-da783110e151)  
@@ -129,5 +132,8 @@ For this piece, use an EC2 instance.
 
 Proof can be provided by either demonstrating to me in person OR by creating a video of the process. If you go the video route and your file is too large for GitHub, submit it to the "Project 5 - Proof of Flow" Dropbox on Pilot
 
-
+### Additional Resources 
+[Stackoverflow - Cloudformation logging user-data](https://stackoverflow.com/questions/54906764/aws-cloudformation-userdata-issue)  
+[Stackoverflow - Echo multiline string into file bash](https://stackoverflow.com/questions/39277019/echo-multiline-string-into-file-bash)  
+[Linuxize - HereDoc](https://linuxize.com/post/bash-heredoc/)  
 
