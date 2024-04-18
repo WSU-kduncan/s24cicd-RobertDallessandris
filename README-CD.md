@@ -139,40 +139,55 @@ On an ubuntu instance, webhook can simply be installed with `sudo apt install we
 > [!CAUTION]  
 > Webhook listens on port 9000. Make sure security groups are configured properly
 
-- How to start the webhook
+To start webhook manually: 
+1. First you need to know the path were webhook is installed. Use `which webhook` to find this. In my case it is located at `/usr/bin/webhook`. 
+2. Next make sure you have your hooks definition file. I used the default file name and location that the webhook service expects `/etc/webhook.conf`.
+    - See below for my hook file or reference the official documentation for how to configure it to your own purposes
+3. Run webhook with `/usr/bin/webhook -hooks /etc/webhook.conf -verbose`
 
-To configure the service to work on reboot, reference the service file at `/lib/systemd/system/webhook.service`:  
+To configure the service to work on boot: 
 
-```bash
-[Unit]
-Description=Small server for creating HTTP endpoints (hooks)
-Documentation=https://github.com/adnanh/webhook/
-ConditionPathExists=/etc/webhook.conf
+1. reference the service file at `/lib/systemd/system/webhook.service`:  
 
-[Service]
-ExecStart=/usr/bin/webhook -nopanic -hooks /etc/webhook.conf
+    ```bash
+    [Unit]
+    Description=Small server for creating HTTP endpoints (hooks)
+    Documentation=https://github.com/adnanh/webhook/
+    ConditionPathExists=/etc/webhook.conf
 
-[Install]
-WantedBy=multi-user.target
-```
-The service is looking for a file `/etc/webhook.conf` on startup. This is the hooks definitions for the service. 
+    [Service]
+    ExecStart=/usr/bin/webhook -nopanic -hooks /etc/webhook.conf
 
-Create the file `/etc/webhook.conf` with the following text:  
-```json
-[
-    {
-    "id": "deploy",
-    "execute-command": "/home/ubuntu/deploy.sh",
-    "command-working-directory": "/home/ubuntu"
-    }
-]
-``` 
+    [Install]
+    WantedBy=multi-user.target
+    ```
+    The service is looking for `/etc/webhook.conf` on startup by default. This is the hooks definitions file for the service. 
 
-webhook listens on `port 9000`. The following http request will trigger the webhook:  
+    **NOTE:** you could change this if you prefer to have the hooks file named something else like hooks.json, or have it in a different location. Simply change the file in both ConditionPathExists and ExecStart. If you do this then you must `sudo systemctl daemon-reload` followed by `sudo systemctl restart webhook.service` for the changes to take effect. 
 
-`http://54.156.193.218:9000/hooks/deploy`  
+2. Create the hook definition file `/etc/webhook.conf`:  
+    ```json
+    [
+        {
+        "id": "deploy",
+        "execute-command": "/home/ubuntu/deploy.sh",
+        "command-working-directory": "/home/ubuntu"
+        }
+    ]
+    ``` 
 
-deploy is the name of the id for the hook we have defined in webhook.conf that gets triggered when the http request is recieved. It executes our deploy script in /home/ubunut/deploy.sh
+3. The service will now start automatically on boot
+
+To trigger the webhook:
+
+- webhook listens on `port 9000`. The following http request will trigger the webhook:  
+
+    `http://54.156.193.218:9000/hooks/deploy`  
+
+- Upon recieving the http request and matching the `"id": "deploy"` defined in webhooks.conf, it will execute the script defined in `"execute-command": "/home/ubuntu/deploy.sh"`
+
+- deploy.sh is the [container restart script](#container-restart-script) defined above.
+
 
 ### How to configure DockerHub to message the listener
 
