@@ -191,6 +191,14 @@ To trigger the webhook:
 
 ### How to configure DockerHub to message the listener
 
+1. On the your repository page click on webhooks  
+    ![dockerhub webhook 1](./img/dockerhub_webhook1.png)  
+
+2. Give the webhook a name, enter the url `http://54.156.218:9000/hooks/deploy`, then click the plus to add it.
+    ![dockerhub webhook 2](./img/dockerhub_webhook2.png)
+
+When DockerHub receives a push to the repository it will send out the http request, triggering the webhook on the instance to run the deploy script.
+
 ### Provide proof that the CI & CD workflow work
 
 Proof was demonstrated in person
