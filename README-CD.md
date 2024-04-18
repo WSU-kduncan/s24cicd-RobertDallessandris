@@ -6,14 +6,13 @@ Spring 2024
 ## CD Project Overview  
 **Project Due Friday April 19th**    
 
-This project demonstrates the continuous deployment of a Docker image. The image is an apache2 http server image that will be automatically pushed to DockerHub with correct semantic versioning when a change is pushed to GitHub. This is accomplished using GitHub actions as defined in the .github/workflows directory. 
+This project demonstrates the continuous deployment of a Docker image. The image is an `apache2 httpd` server image that will be automatically pushed to DockerHub with correct semantic versioning when a change is pushed to GitHub. This is accomplished using GitHub actions as defined in the `.github/workflows` directory. 
 
 **TODO** 
 - Include a diagram of the continuous deployment process. A good diagram will label tools used and how things connect. 
 
 
 ## 1. Semantic Versioning  
-**Milestone Due Friday April 5th**  
 
 [Semantic Versioning](https://semver.org/)  
 [Github Actions - Docker metadata](https://github.com/docker/metadata-action)  
@@ -40,77 +39,67 @@ git push origin v1.0
 
 ### Amend GitHub Action workflow to push Docker images with tags
 
-To change the GitHub Action workflow to trigger when a tag is pushed, amend the workflow trigger in the yaml file as follows:  
+1. To change the GitHub Action workflow to trigger when a tag is pushed, amend the workflow trigger in the yaml file as follows:  
 
-```yaml
-on:
-  push:
-    tags:
-      - 'v*'
-```  
+    ```yaml
+    on:
+    push:
+        tags:
+        - 'v*'
+    ```  
+    
+    This will cause the workflow to trigger only when a tag is pushed.  
   
-This will cause the workflow to trigger only when a tag is pushed.  
+2. To Generate tags for the DockerHub image we will use the `docker/metadata-action` GitHub Action. Add the following to the steps section of the workflow yaml:  
   
-To Generate tags for the DockerHub image we will use the `docker/metadata-action` GitHub Action. Add the following to the steps section of the workflow yaml:  
+    ```yaml
+    - 
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+            images: |
+                rdalless/ceg3120
+            tags: |
+            type=ref,event=tag
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern=v{{major}}
+    ```  
+    
+    This will collect the github tag metadata that we will use when pushing the image to DockerHub.  
   
-```yaml
-- 
-    name: Docker meta
-    id: meta
-    uses: docker/metadata-action@v5
-    with:
-        images: |
-            rdalless/ceg3120
-        tags: |
-        type=ref,event=tag
-        type=semver,pattern=v{{major}}.{{minor}}
-        type=semver,pattern=v{{major}}
-```  
+3. Modify the build and push action to utilize these tags:  
   
-This will collect the github tag metadata that we will use when pushing the image to DockerHub.  
-  
-Next, modify the build and push action to utilize these tags:  
-  
-```yaml
--
-    name: Build and push Docker images
-    uses: docker/build-push-action@v5.3.0
-    with:
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-```  
+    ```yaml
+    -
+        name: Build and push Docker images
+        uses: docker/build-push-action@v5.3.0
+        with:
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
+    ```  
 
 ### Behavior of GitHub workflow
 [My DockerHub Repository Link](https://hub.docker.com/repository/docker/rdalless/ceg3120/general)
 
-This workflow will when a tag is pushed to GitHub. First, the docker/meta-action grabs the git tag metadata. Next, the docker/login-action logs into my dockerhub account using the GitHub secrets variables. Finally, the docker/build-push-action builds the image and pushes it to DockerHub with the version tag (e.g. v1.1) and latest.
+This workflow will when a tag is pushed to GitHub. 
+1. First, the docker/meta-action grabs the git tag metadata. 
+2. Next, the docker/login-action logs into my dockerhub account using the GitHub secrets variables. 
+3. Finally, the docker/build-push-action builds the image and pushes it to DockerHub with the version tag (e.g. v1.1) and latest.
 
 ## 2. Deployment  
+
+[GitHub Actions & webhooks](https://levelup.gitconnected.com/automated-deployment-using-docker-github-actions-and-webhooks-54018fc12e32)  
+[DockerHub & webhooks](https://blog.devgenius.io/build-your-first-ci-cd-pipeline-using-docker-github-actions-and-webhooks-while-creating-your-own-da783110e151)  
 
 This [Cload Formation Template](./project5-cf.yml) automates creating an instance with docker installed, the docker image downloaded from dockerhub, a new container started, and the webhooks properly configured to trigger a pre-loaded deploy script.  
 
 I will walk through setting this up manually below.  
 
-[GitHub Actions & webhooks](https://levelup.gitconnected.com/automated-deployment-using-docker-github-actions-and-webhooks-54018fc12e32)  
-[DockerHub & webhooks](https://blog.devgenius.io/build-your-first-ci-cd-pipeline-using-docker-github-actions-and-webhooks-while-creating-your-own-da783110e151)  
-
-On an EC2 instance:
-
-
-
-**pull and run a container from your DockerHub image**  
-
-- Create a script to pull a new image from DockerHub and restart the container
-    - put a copy of the script in a folder named deployment in your repo
-- Set a listener / hook to receive messages using adnanh's webhook
-- Create a hook - when a message is received run the container restart script
-    - put a copy of the hook configuration in a folder named deployment in your repo
-- Configure either GitHub or DockerHub to send a message to the listener / hook  
-
 ### How to install Docker to your instance
 
-Please refer to [README-CI](./README-CI.md#how-to-install-docker--dependencies) for step by step instructions to installing docker on a linux instance.  
+Please refer to [README-CI](./README-CI.md#how-to-install-docker--dependencies) for step-by-step instructions to installing docker on a linux instance.  
 
 ### Container restart script
 
@@ -204,6 +193,7 @@ When DockerHub receives a push to the repository it will send out the http reque
 Proof was demonstrated in person
 
 ### Additional Resources 
+
 [Stackoverflow - Cloudformation logging user-data](https://stackoverflow.com/questions/54906764/aws-cloudformation-userdata-issue)  
 [Stackoverflow - Echo multiline string into file bash](https://stackoverflow.com/questions/39277019/echo-multiline-string-into-file-bash)  
 [Linuxize - HereDoc](https://linuxize.com/post/bash-heredoc/)  
