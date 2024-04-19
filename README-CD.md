@@ -186,7 +186,7 @@ To trigger the webhook:
 
 When DockerHub receives a push to the repository it will send out the http request, triggering the webhook on the instance to run the deploy script.
 
-### Provide proof that the CI & CD workflow work
+### Provide proof that the CI & CD workflow works
 
 Proof was demonstrated in person
 
