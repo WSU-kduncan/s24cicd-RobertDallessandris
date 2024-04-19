@@ -1,0 +1,10 @@
+[Unit]
+Description=Small server for creating HTTP endpoints (hooks)
+Documentation=https://github.com/adnanh/webhook/
+ConditionPathExists=/etc/webhook.conf
+
+[Service]
+ExecStart=/usr/bin/webhook -nopanic -hooks /etc/webhook.conf
+
+[Install]
+WantedBy=multi-user.target
