@@ -11,6 +11,8 @@ When a tagged version update is pushed to GitHub a workflow is triggered as defi
 
 When the proxy server recieves the webhook it triggers the `proxy deploy script`, which in turn uses `curl` to send http requests to port 9000 at the private IP addresses of the AWS webservers. The webservers, upon receipt of these webhooks, trigger their own `webserv deploy scripts`. These scripts stop and delete the currently running container, pull the fresh image from DockerHub through the NAT gateway, then run a new container serving updated web content.  
 
+![diagram](../img/LB_continuous_deployment.png)  
+
 ## Implementation
 
 [AWS CloudFormation Docs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html)
