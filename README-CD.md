@@ -81,9 +81,10 @@ git push origin v1.0
 [My DockerHub Repository Link](https://hub.docker.com/repository/docker/rdalless/ceg3120/general)
 
 This workflow will when a tag is pushed to GitHub. 
-1. First, the docker/meta-action grabs the git tag metadata. 
-2. Next, the docker/login-action logs into my dockerhub account using the GitHub secrets variables. 
-3. Finally, the docker/build-push-action builds the image and pushes it to DockerHub with the version tag (e.g. v1.1) and latest.
+1. actions/checkout@v4 checks out the git repository so the workflow can access it.
+1. docker/meta-action grabs the git tag metadata. 
+2. docker/login-action logs into my dockerhub account using the GitHub secrets variables. 
+3. docker/build-push-action builds the image and pushes it to DockerHub with the version tag (e.g. v1.1) and latest.
 
 ## 2. Deployment  
 
