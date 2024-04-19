@@ -1,16 +1,13 @@
-# Project 5  
+# Project 5: Continuous Deployment
 Robert D'Allessandris  
 CEG 3120  
 Spring 2024  
 
-## CD Project Overview  
-**Project Due Friday April 19th**    
+## Project Overview  
 
-This project demonstrates the continuous deployment of a Docker image. The image is an `apache2 httpd` server image that will be automatically pushed to DockerHub with correct semantic versioning when a change is pushed to GitHub. This is accomplished using GitHub actions as defined in the `.github/workflows` directory. 
+This project demonstrates the continuous deployment of a Docker image. The image for this project is an `apache2 httpd` server that will be automatically pushed to DockerHub with correct semantic versioning when a new version tag is pushed to GitHub. This is accomplished using GitHub actions as defined in the `.github/workflows` directory. The workflow uses a GitHub runner to build the image and push it to DockerHub. When DockerHub receives the push, a webhook is triggered which will send an http request to an AWS instance. When the instance recieves this webhook, a deployment script is run. The script stops and deletes the currently running container, pulls the fresh image from DockerHub, then starts a new container. Now updated web content is being served from the container on the instance.
 
-**TODO** 
-- Include a diagram of the continuous deployment process. A good diagram will label tools used and how things connect. 
-
+![Continuous Deployment](img/continuous_deployment.png)
 
 ## 1. Semantic Versioning  
 
